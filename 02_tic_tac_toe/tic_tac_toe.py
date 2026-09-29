@@ -1,219 +1,105 @@
-#!/usr/bin/env python3
-"""
-Tic-Tac-Toe with Minimax AI
-===========================
-AI lab program: adversarial search using the Minimax algorithm.
+# Name: yathindakshiraju
+# Email: yathindakshiraju.cs24@bmsce.ac.in
+# AI Laboratory - Program 2: Tic Tac Toe using Minimax
 
-Modes:
-  - Default (demo): AI vs AI - fully automatic, screenshot-friendly
-  - Interactive: Human (X) vs AI (O) when run with --interactive
-
-Board positions are numbered 1-9 (row-major):
-  1 | 2 | 3
-  ---------
-  4 | 5 | 6
-  ---------
-  7 | 8 | 9
-"""
-
-from __future__ import annotations
-
-import sys
-from typing import List, Optional, Tuple
-
-Player = str  # "X" or "O"
-Board = List[str]
-
-WIN_LINES = (
-    (0, 1, 2),
-    (3, 4, 5),
-    (6, 7, 8),
-    (0, 3, 6),
-    (1, 4, 7),
-    (2, 5, 8),
-    (0, 4, 8),
-    (2, 4, 6),
-)
+# Default run is AI vs AI so it finishes without waiting for input.
 
 
-def empty_board() -> Board:
-    return [" "] * 9
+WIN = [
+    (0, 1, 2), (3, 4, 5), (6, 7, 8),
+    (0, 3, 6), (1, 4, 7), (2, 5, 8),
+    (0, 4, 8), (2, 4, 6),
+]
 
 
-def print_board(board: Board, title: str = "Board") -> None:
-    print(f"\n  --- {title} ---")
-    rows = [
-        f"   {board[0]} | {board[1]} | {board[2]} ",
-        "  -----------",
-        f"   {board[3]} | {board[4]} | {board[5]} ",
-        "  -----------",
-        f"   {board[6]} | {board[7]} | {board[8]} ",
-    ]
-    for line in rows:
-        print(line)
+def show(board):
+    print()
+    print(f" {board[0]} | {board[1]} | {board[2]} ")
+    print("-----------")
+    print(f" {board[3]} | {board[4]} | {board[5]} ")
+    print("-----------")
+    print(f" {board[6]} | {board[7]} | {board[8]} ")
     print()
 
 
-def winner(board: Board) -> Optional[Player]:
-    for a, b, c in WIN_LINES:
+def check_winner(board):
+    for a, b, c in WIN:
         if board[a] != " " and board[a] == board[b] == board[c]:
             return board[a]
     return None
 
 
-def is_full(board: Board) -> bool:
-    return all(c != " " for c in board)
+def free_squares(board):
+    return [i for i in range(9) if board[i] == " "]
 
 
-def available_moves(board: Board) -> List[int]:
-    return [i for i, c in enumerate(board) if c == " "]
-
-
-def evaluate(board: Board, maximizer: Player) -> int:
-    """Terminal utility from maximizer's perspective."""
-    w = winner(board)
-    if w == maximizer:
+def minimax(board, is_max, ai, human):
+    # returns best score for the AI player
+    w = check_winner(board)
+    if w == ai:
         return 1
-    if w is not None:
+    if w == human:
         return -1
-    return 0
+    if not free_squares(board):
+        return 0
+
+    if is_max:
+        best = -999
+        for i in free_squares(board):
+            board[i] = ai
+            best = max(best, minimax(board, False, ai, human))
+            board[i] = " "
+        return best
+    else:
+        best = 999
+        for i in free_squares(board):
+            board[i] = human
+            best = min(best, minimax(board, True, ai, human))
+            board[i] = " "
+        return best
 
 
-def minimax(
-    board: Board,
-    depth: int,
-    is_maximizing: bool,
-    maximizer: Player,
-    minimizer: Player,
-) -> Tuple[int, Optional[int]]:
-    """
-    Classic minimax.
-    Returns (score, best_move_index).
-    """
-    if winner(board) is not None or is_full(board):
-        return evaluate(board, maximizer), None
-
-    best_move: Optional[int] = None
-
-    if is_maximizing:
-        best_score = -999
-        for move in available_moves(board):
-            board[move] = maximizer
-            score, _ = minimax(board, depth + 1, False, maximizer, minimizer)
-            board[move] = " "
-            if score > best_score:
-                best_score = score
-                best_move = move
-        return best_score, best_move
-
-    best_score = 999
-    for move in available_moves(board):
-        board[move] = minimizer
-        score, _ = minimax(board, depth + 1, True, maximizer, minimizer)
-        board[move] = " "
-        if score < best_score:
-            best_score = score
-            best_move = move
-    return best_score, best_move
-
-
-def best_move_for(board: Board, player: Player) -> int:
+def best_move(board, player):
     opponent = "O" if player == "X" else "X"
-    # Current player is the maximizer for this decision
-    _, move = minimax(board, 0, True, player, opponent)
-    if move is None:
-        moves = available_moves(board)
-        return moves[0]
+    move = None
+    best = -999
+    for i in free_squares(board):
+        board[i] = player
+        score = minimax(board, False, player, opponent)
+        board[i] = " "
+        if score > best:
+            best = score
+            move = i
     return move
 
 
-def announce_result(board: Board) -> None:
-    w = winner(board)
-    if w:
-        print(f"  >>> Winner: {w}")
-    else:
-        print("  >>> Result: DRAW")
+def main():
+    print("Program 2: Tic Tac Toe")
+    print("Minimax AI vs AI (both play optimally)")
 
-
-def play_ai_vs_ai() -> None:
-    """Non-interactive demo: two minimax agents play until terminal state."""
-    print("=" * 50)
-    print("=== Tic-Tac-Toe Demo (AI vs AI, Minimax) ===")
-    print("=" * 50)
-    print("X = Maximizing AI")
-    print("O = Minimizing AI")
-    print("Both players choose optimal minimax moves.")
-
-    board = empty_board()
-    print_board(board, "Initial (empty)")
-    current: Player = "X"
-    turn = 0
+    board = [" "] * 9
+    show(board)
+    turn = "X"
+    n = 0
 
     while True:
-        turn += 1
-        move = best_move_for(board, current)
-        board[move] = current
-        print(f"  Turn {turn}: Player {current} plays position {move + 1}")
-        print_board(board, f"After {current}'s move")
+        n += 1
+        pos = best_move(board, turn)
+        board[pos] = turn
+        print(f"Turn {n}: {turn} plays at {pos + 1}")
+        show(board)
 
-        if winner(board) or is_full(board):
-            announce_result(board)
+        w = check_winner(board)
+        if w:
+            print(f"Winner: {w}")
             break
-        current = "O" if current == "X" else "X"
-
-    print("=" * 50)
-    print("Demo complete. (Both play optimally -> expected DRAW)")
-    print("=" * 50)
-
-
-def play_human_vs_ai() -> None:
-    """Interactive: Human X vs Minimax AI O."""
-    print("=" * 50)
-    print("=== Tic-Tac-Toe (Human X vs AI O) ===")
-    print("=" * 50)
-    print("Enter a position 1-9 when prompted.")
-
-    board = empty_board()
-    print_board(board, "Initial")
-
-    while True:
-        # Human move
-        while True:
-            raw = input("  Your move (1-9): ").strip()
-            if not raw.isdigit():
-                print("  Please enter a number 1-9.")
-                continue
-            pos = int(raw) - 1
-            if pos not in range(9) or board[pos] != " ":
-                print("  Invalid / occupied square. Try again.")
-                continue
-            board[pos] = "X"
+        if not free_squares(board):
+            print("Result: DRAW")
             break
 
-        print_board(board, "After your move")
-        if winner(board) or is_full(board):
-            announce_result(board)
-            break
+        turn = "O" if turn == "X" else "X"
 
-        # AI move
-        move = best_move_for(board, "O")
-        board[move] = "O"
-        print(f"  AI plays position {move + 1}")
-        print_board(board, "After AI move")
-        if winner(board) or is_full(board):
-            announce_result(board)
-            break
-
-    print("=" * 50)
-
-
-def main() -> None:
-    if "--interactive" in sys.argv:
-        play_human_vs_ai()
-    else:
-        print("(Default: AI vs AI demo - no input needed)")
-        print("(Re-run with --interactive for Human vs AI)\n")
-        play_ai_vs_ai()
+    print("Finished.")
 
 
 if __name__ == "__main__":
